@@ -1,0 +1,146 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  # The most common configuration options are documented and commented below.
+  # For a complete reference, please see the online documentation at
+  # https://docs.vagrantup.com.
+ 
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://vagrantcloud.com/search.
+ 
+  config.vm.define :nodeserver do |nodeserver|
+    nodeserver.vm.box = "kalilinux/rolling"
+    nodeserver.vm.provider :libvirt do |libvirt|
+      libvirt.id_ssh_key_file = "/home/jason/projects/kali_remote/id_ssh.key"
+      libvirt.host = '10.130.10.50'
+      libvirt.connect_via_ssh = true
+      libvirt.username = "jason"
+      #libvirt.password = ''
+      libvirt.memory = 2048
+      libvirt.cpus = 2
+    end
+  end
+ 
+  # Default false
+  config.ssh.forward_agent = true
+  config.ssh.forward_x11 = true
+ 
+  # Default true
+  config.ssh.keep_alive = false
+ 
+  # Default 300s
+  config.vm.boot_timeout = 900
+
+  config.vm.provision "file", source: "~/projects/gm-com-chain.pem", destination: "~/"
+  
+  config.vm.provision "shell", inline: <<-SHELL
+    echo foo
+    sudo cp /home/vagrant/gm-com-chain.pem /etc/pki/ca-trust/source/anchors/
+    #sudo mv ~/gdroot-g2.pem /etc/pki/ca-trust/source/anchors/
+    #sudo update-ca-trust
+    # Base requirements for installing X11
+    #sudo dnf update -y
+    #sudo dnf install -y git
+    # Add desktop environment
+    #sudo dnf install -y xorg-x11-xauth
+    #sudo dnf install -y xclock
+    #sudo dnf install -y gnome-shell
+    #sudo dnf install xorg-x11-apps
+    #sudo dnf install -y xorg*
+    #sudo dnf install -y @xfce-desktop-environment
+    sudo sed -i '/#X11Forwarding no/s//X11Forwarding yes/' /etc/ssh/sshd_config
+    sudo rm -rf /root/.Xauthority
+    sudo rm -rf /root/.serverauth.*  
+  SHELL
+  
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    echo bar
+    git clone https://gitlab.com/veilid/veilid.git
+    ./veilid/dev-setup/install_linux_prerequisites.sh || true
+  SHELL
+  
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    echo bas
+    export PATH=$PATH:/home/vagrant/.cargo/bin >> ~/.bashrc
+    #sed -i 's/PATH\=/PATH\=\/home\/vagrant\/\.cargo\/bin\:/g' /etc/environment
+  SHELL
+
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    echo fooby
+    sed -i 's/debian/kali/' /home/vagrant/veilid/dev-setup/setup_linux.sh
+    echo "N" | ./veilid/dev-setup/setup_linux.sh 
+    cd veilid/veilid-server
+    nohup cargo run -p veilid-server &
+  SHELL
+
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    echo barby
+    cd veilid/veilid-cli/
+    cargo run -p veilid-cli
+  SHELL
+
+  config.vm.synced_folder ".", "/vagrant", type: "rsync",
+    rsync__exclude: ".git/, ./vagrant"
+  # The most common configuration options are documented and commented below.
+  # For a complete reference, please see the online documentation at
+  # https://docs.vagrantup.com.
+
+  # Disable automatic box update checking. If you disable this, then
+  # boxes will only be checked for updates when the user runs
+  # `vagrant box outdated`. This is not recommended.
+  # config.vm.box_check_update = false
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine. In the example below,
+  # accessing "localhost:8080" will access port 80 on the guest machine.
+  # NOTE: This will enable public access to the opened port
+  # config.vm.network "forwarded_port", guest: 80, host: 8080
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine and only allow access
+  # via 127.0.0.1 to disable public access
+  # config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
+
+  # Create a private network, which allows host-only access to the machine
+  # using a specific IP.
+  # config.vm.network "private_network", ip: "192.168.33.10"
+
+  # Create a public network, which generally matched to bridged network.
+  # Bridged networks make the machine appear as another physical device on
+  # your network.
+  # config.vm.network "public_network"
+
+  # Share an additional folder to the guest VM. The first argument is
+  # the path on the host to the actual folder. The second argument is
+  # the path on the guest to mount the folder. And the optional third
+  # argument is a set of non-required options.
+  # config.vm.synced_folder "../data", "/vagrant_data"
+
+  # Provider-specific configuration so you can fine-tune various
+  # backing providers for Vagrant. These expose provider-specific options.
+  # Example for VirtualBox:
+  #
+  # config.vm.provider "virtualbox" do |vb|
+  #   # Display the VirtualBox GUI when booting the machine
+  #   vb.gui = true
+  #
+  #   # Customize the amount of memory on the VM:
+  #   vb.memory = "1024"
+  # end
+  #
+  # View the documentation for the provider you are using for more
+  # information on available options.
+
+  # Enable provisioning with a shell script. Additional provisioners such as
+  # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
+  # documentation for more information about their specific syntax and use.
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   apt-get update
+  #   apt-get install -y apache2
+  # SHELL
+end
