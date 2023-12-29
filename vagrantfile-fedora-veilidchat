@@ -127,9 +127,10 @@ Vagrant.configure("2") do |config|
     echo basby
     echo # Login to host with "vagrant ssh"
     echo # Issue the following command:
-    export PATH="$HOME/flutter/bin:$PATH"
+    echo export PATH="$HOME/flutter/bin:$PATH"
     echo cd veilidchat; ./reset_run.sh
-    cd veilidchat; nohup firefox & ./reset_run.sh && fg
+    echo # -or-
+    echo cd veilidchat; nohup firefox & ./reset_run.sh && fg
 
     #cd ~/veilid/target/release 
     #nohup ./veilid-server &> /dev/null 2>&1 & disown
