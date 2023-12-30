@@ -28,7 +28,7 @@ Vagrant.configure("2") do |config|
       #libvirt.graphics_port = 5901
       #libvirt.graphics_ip = '0.0.0.0'
       #libvirt.video_type = 'qxl', 'jabreity'
-      # Required for virtiofs
+      # Required for virtiofs jasonabreitwieser
       # libvirt.memorybacking :access, :mode => "shared"
     end
   end
@@ -98,7 +98,6 @@ Vagrant.configure("2") do |config|
     echo export PATH="$HOME/flutter/bin:$HOME/.cargo/bin:/usr/local/veilidchat:$HOME/veilid/target/release:$PATH" >> ~/.bashrc
     #echo export PATH="$HOME/flutter/bin:$PATH" >> ~/.bashrc
     #echo export PATH="$HOME/.cargo/bin:$PATH" >> ~/.bashrc
-    #echo export PATH="$HOME/flutter/bin:$PATH" >> ~/.bashrc
     #echo export PATH="/usr/local/veilidchat:$PATH" >> ~/.bashrc
   SHELL
   
@@ -125,7 +124,7 @@ Vagrant.configure("2") do |config|
   SHELL
 
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
-    echo basby
+    echo foobyfoo
     echo Login to host with "vagrant ssh"
     #echo Issue the following command if flutter errors:
     #echo export PATH="$HOME/flutter/bin:$PATH"
