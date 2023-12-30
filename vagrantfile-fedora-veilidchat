@@ -124,7 +124,7 @@ Vagrant.configure("2") do |config|
   SHELL
 
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
-    echo foobyfoo
+    echo foobiddy
     echo Login to host with "vagrant ssh"
     #echo Issue the following command if flutter errors:
     #echo export PATH="$HOME/flutter/bin:$PATH"
