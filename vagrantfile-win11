@@ -1,0 +1,137 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  # The most common configuration options are documented and commented below.
+  # For a complete reference, please see the online documentation at
+  # https://docs.vagrantup.com.
+  config.vm.guest = :windows
+  config.vm.communicator = "winssh"
+  #
+  #config.winrm.username = "vagrant"
+  #config.winrm.password = "vagrant"
+  #config.winrm.transport = :plaintext
+  #config.winrm.basic_auth_only = true
+  #config.wnrm.ssl_peer_verification = false
+  #
+  config.nfs.functional = false
+  config.winssh.shell = :powershell
+  config.winssh.forward_agent = true
+  config.ssh.keep_alive = false
+  config.ssh.shell = "cmd"
+  config.vm.allow_fstab_modification = false
+  config.vm.allow_hosts_modification = false
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://vagrantcloud.com/search.
+ 
+  config.vm.define :veilidchat do |veilidchat|
+    veilidchat.vm.box = "jabreity/win11"
+    veilidchat.vm.box_version = "0.1.2"
+    veilidchat.vm.provider :libvirt do |libvirt|
+      libvirt.id_ssh_key_file = "/home/jason/projects/kali_remote/id_ssh.key"
+      #libvirt.uri = "qemu+ssh://10.130.10.50/system"
+      libvirt.host = '10.130.10.50'
+      libvirt.connect_via_ssh = true
+      libvirt.username = "jason"
+      libvirt.password = ''
+      libvirt.memory = 12048
+      libvirt.cpus = 8
+      libvirt.driver = 'kvm'
+      libvirt.storage_pool_name = "default"
+      libvirt.disk_bus = "sata"
+      libvirt.nic_model_type = "e1000"
+      libvirt.storage :file, :type => 'qcow2', :disk_bus => 'scsi', :size => '40G', :allow_existing => 'False'
+      #libvirt.loader = "/usr/share/edk2/ovmf/OVMF_CODE.fd"
+      libvirt.loader = "/usr/share/edk2/ovmf/OVMF_CODE_4M.secboot.qcow2"
+      libvirt.nvram = "/usr/share/edk2/ovmf/OVMF_VARS_4M.secboot.qcow2"
+      #libvirt.machine_type = 'pc-q35-8.1'
+      #libvirt.machine_type = 'breitwieser'
+      libvirt.machine_type = 'q35'
+      #libvirt.boot 'hd'
+      libvirt.nested = true
+      #libvirt.graphics_port = 5901
+      #libvirt.graphics_ip = '0.0.0.0'
+      #libvirt.video_type = 'qxl'
+      # Required for virtiofs
+      # libvirt.memorybacking :access, :mode => "shared"
+    end
+  end
+  config.ssh.username = 'vagrant'
+  config.ssh.password = 'vagrant'
+  config.ssh.insert_key = false
+  # Default false
+  config.ssh.forward_agent = true
+  config.ssh.forward_x11 = true
+  config.ssh.extra_args = "-t"
+  # Default true
+  #config.ssh.keep_alive = false
+ 
+  # Default 300s
+  config.vm.boot_timeout = 3600
+
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  #config.vm.provision "file", source: "~/projects/gm-com-chain.pem", destination: "~/"
+
+  
+  #config.vm.provision "shell", inline: <<-SHELL
+  #  echo foo
+  #SHELL
+
+  #config.vm.synced_folder ".", "/vagrant", type: "rsync",
+  #  rsync__exclude: ".git/, ./vagrant"
+  
+  #Start-Process -FilePath "C:\\Users\\vagrant\\veilid\\dev-setup\\setup_windows.bat" -Wait -NoNewWindow
+  #config.vm.provision "file", source: "~/projects/gm-com-chain.pem", destination: "~/"
+  #config.vm.network :forwarded_port, guest: 3389, host: 3389
+  #config.vm.network :libvirt__network_name 'default'
+  #config.vm.network :forwarded_port, guest: 5985, host: 5985, id: "winrm", auto_correct: true
+  #Clear-Disk -Number 1 -RemoveData
+  #$disk = Get-Disk -Number 1  
+  #Initialize-Disk -Number $disk.Number -PartitionStyle GPT -confirm:$false -passthru 
+  #New-Partition -DiskNumber $disk.Number -UseMaximumSize -IsActive | Format-Volume -FileSystem NTFS -NewFileSystemLabel "Local Disk" -confirm:$False  
+  #Set-Partition -DiskNumber $disk.Number -PartitionNumber 1 -NewDriveLetter F 
+
+  config.vm.provision "shell", privileged: "true", powershell_elevated_interactive: "true", preserve_order: "true", inline: <<-SHELL
+    Clear-Disk -Number 1 -RemoveData -confirm:$false -passthru
+    Initialize-Disk -Number 1 -PartitionStyle GPT -confirm:$false -passthru
+    Get-Disk 1 | New-Volume -FileSystem NTFS -DriveLetter F -FriendlyName 'Data'
+    Set-Location -Path "F:\\"
+    git clone https://gitlab.com/veilid/veilid.git
+    Set-Location -Path "F:\\veilid"
+    wget https://github.com/protocolbuffers/protobuf/releases/download/v23.2/protoc-23.2-win64.zip -O F:\\veilid\\protoc-23.2-win64.zip
+    unzip protoc-23.2-win64.zip -d protoc
+    $env:PATH += ";F:\\veilid\\protoc\\bin"
+    wget https://capnproto.org/capnproto-c++-win32-1.0.1.zip -O F:\\veilid\\capnproto-c++-win32-1.0.1.zip
+    unzip capnproto-c++-win32-1.0.1.zip
+    $env:PATH += ";F:\\veilid\\capnproto-c++-1.0.1"
+    $env:PATH += ";F:\\veilid\\capnproto-tools-win32-1.0.1"
+    wget https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -O rustup-init.exe
+    wget https://aka.ms/vs/17/release/vs_BuildTools.exe -o vs_BuildTools.exe
+    winget install -e --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools;includeRecommended"
+  SHELL
+  config.vm.provision "shell", privileged: "true", powershell_elevated_interactive: "true", preserve_order: "true", inline: <<-SHELL
+    Set-Location -Path "F:\\veilid"
+    ./rustup-init.exe -y
+  SHELL
+  config.vm.provision "shell", privileged: "true", powershell_elevated_interactive: "true", preserve_order: "true", inline: <<-SHELL
+    Set-Location -Path "F:\\veilid"
+    $env:PATH = "C:\\Users\\vagrant\\veilid\\.cargo\\bin" +`
+    ";F:\\veilid\\protoc\\bin" +`
+    ";F:\\veilid\\capnproto-c++-1.0.1" +`
+    ";F:\\veilid\\capnproto-tools-win32-1.0.1" +`
+    ";C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools" +`
+    $env:PATH
+    echo $env:PATH
+    #Invoke-Item -Path "F:\\veilid\\dev-setup\\setup_windows.bat"
+    #./F:\\veilid\\dev-setup\\setup_windows.bat
+    .\dev-setup\setup_windows.bat
+    cargo build
+    Set-Location -Path "F:\\veilid\\vagrant-cli"
+    cargo build
+    Set-Location -Path "F:\\veilid"
+  SHELL
+end
