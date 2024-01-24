@@ -119,7 +119,8 @@ Vagrant.configure("2") do |config|
   SHELL
   config.vm.provision "shell", privileged: "true", powershell_elevated_interactive: "true", preserve_order: "true", inline: <<-SHELL
     Set-Location -Path "F:\\veilid"
-    $env:PATH = "C:\\Users\\vagrant\\veilid\\.cargo\\bin" +`
+    $env:PATH = "C:\\Users\\vagrant\\.cargo\\bin" +`
+    ";F:\\veilid\\.cargo\\bin" +`
     ";F:\\veilid\\protoc\\bin" +`
     ";F:\\veilid\\capnproto-c++-1.0.1" +`
     ";F:\\veilid\\capnproto-tools-win32-1.0.1" +`
@@ -128,10 +129,12 @@ Vagrant.configure("2") do |config|
     echo $env:PATH
     #Invoke-Item -Path "F:\\veilid\\dev-setup\\setup_windows.bat"
     #./F:\\veilid\\dev-setup\\setup_windows.bat
-    .\dev-setup\setup_windows.bat
+    Set-Location -Path "F:\\veilid\\dev-setup"
+    .\\setup_windows.bat
     cargo build
-    Set-Location -Path "F:\\veilid\\vagrant-cli"
+    Set-Location -Path "F:\\veilid\\veilid-cli"
     cargo build
-    Set-Location -Path "F:\\veilid"
+    Set-Location -Path "F:\\veilid\\veilid-server"
+    cargo build
   SHELL
 end
