@@ -135,6 +135,9 @@ Vagrant.configure("2") do |config|
     Set-Location -Path "F:\\veilid\\veilid-cli"
     cargo build
     Set-Location -Path "F:\\veilid\\veilid-server"
-    cargo build
+    echo You may now login using vagrant ssh
+    echo and run the following commands to start
+    echo cargo build
+    echo cargo run --bin veilid-server
   SHELL
 end
