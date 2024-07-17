@@ -174,7 +174,7 @@ Vagrant.configure("2") do |config|
     echo basby
     export PATH="$HOME/flutter/bin:$PATH"
     sudo -u vagrant sed -i 's/debian\|/Fedora\|/' /home/vagrant/veilidchat/dev-setup/setup_linux.sh
-    echo "N" | ./veilidchat/dev-setup/setup_linux.sh || true
+    echo "Y" | ./veilidchat/dev-setup/setup_linux.sh || true
     ./veilidchat/install_protoc_linux.sh
     cd ~/veilidchat/
     dart pub global activate protoc_plugin
