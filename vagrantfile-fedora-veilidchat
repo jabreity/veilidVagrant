@@ -163,7 +163,7 @@ Vagrant.configure("2") do |config|
     sudo -u vagrant sed -i 's/debian\|/Fedora\|/' /home/vagrant/veilid/dev-setup/setup_linux.sh
     echo "N" | ./veilid/dev-setup/setup_linux.sh || true
     sudo ./veilid/dev-setup/install_linux_prerequisites.sh
-    sudo apt-get install cargo -y
+    sudo dnf install cargo -y
     #sudo dnf install rustc -y
     #sudo dnf install rust -y
     #sudo apt-get install python3-pip -y
