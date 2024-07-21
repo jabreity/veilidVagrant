@@ -171,7 +171,7 @@ Vagrant.configure("2") do |config|
     echo barby
     echo ##### - extracted from veilid/dev-setup/install_linux_prerequisites.sh
     sudo dnf update -y
-    sudo dnf install -y java-17-openjdk-headless iproute curl cmake openssl-devel openssl git file pkg-config dbus-devel dbus-glib gobject-introspection-devel cairo-devel unzip llvm wabt python3-pip gcc-c++
+    sudo dnf install -y java-17-openjdk-headless java-17-openjdk-devel iproute curl cmake openssl-devel openssl git file pkg-config dbus-devel dbus-glib gobject-introspection-devel cairo-devel unzip llvm wabt python3-pip gcc-c++
     sudo dnf groupinstall -y 'Development Tools'
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y -c clippy --profile default
     ##### We have likely done this above
