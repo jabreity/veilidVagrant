@@ -97,12 +97,16 @@ Vagrant.configure("2") do |config|
   # Default 300s
   config.vm.boot_timeout = 900
 
-  config.vm.provision "file", source: "~/projects/gm-com-chain.pem", destination: "~/"
+  # Configure host for transparent proxy
+  config.vm.provision "file", source: "~/projects/crt.pem", destination: "~/"
+  config.vm.provision "shell", inline: <<-'SHELL'
+    echo null
+    sudo cp /home/vagrant/crt.pem /etc/pki/ca-trust/source/anchors/
+    sudo update-ca-trust
+  SHELL
 
-  
-  config.vm.provision "shell", inline: <<-SHELL
+  config.vm.provision "shell", inline: <<-'SHELL'
     echo foo
-    sudo cp /home/vagrant/gm-com-chain.pem /etc/pki/ca-trust/source/anchors/
     #sudo mv ~/gdroot-g2.pem /etc/pki/fwupd/
     #sudo update-ca-trust
     # Base requirements for installing X11
@@ -121,7 +125,8 @@ Vagrant.configure("2") do |config|
     sudo dnf check-update
     sudo dnf install -y code
     sudo dnf install -y firefox
-
+    sudo dnf install -y expect
+    
     sudo dnf install -y redhat-lsb
     sudo dnf install -y ninja-build
     sudo dnf install -y clang
@@ -134,16 +139,18 @@ Vagrant.configure("2") do |config|
     sudo rm -rf /root/.serverauth.*  
   SHELL
   
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+  config.vm.provision "shell", privileged: false, inline: <<-'SHELL'
     echo bar
-    wget -q https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.22.2-stable.tar.xz
-    tar --index-file=/dev/null -xf flutter_linux_3.22.2-stable.tar.xz
+    #wget -q https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.22.2-stable.tar.xz
+    tar --index-file=/dev/null -xf /vagrant/flutter_linux_3.22.2-stable.tar.xz
+
   SHELL
 
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+  config.vm.provision "shell", privileged: false, inline: <<-'SHELL'
     echo bas
-    sudo pkg install -y git
+    sudo dnf install -y git
     git clone https://gitlab.com/veilid/veilid.git
+    #cd veilid - Differing opinions regarding location of Veilid and Veilidchat
     git clone https://gitlab.com/veilid/veilidchat.git
     sudo mkdir /usr/local/veilidchat
     sudo chown vagrant:vagrant /usr/local/veilidchat/
@@ -153,30 +160,110 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
     echo fooby
     echo export PATH="$HOME/.pub-cache/bin:$HOME/flutter/bin:$HOME/.cargo/bin:/usr/local/veilidchat:$HOME/veilid/target/release:$PATH" >> ~/.bashrc
+    echo export VEILIDDIR="$HOME/veilid"
+    #echo export ANDROID_HOME="$HOME/veilidchat/"
     #echo export PATH="$HOME/flutter/bin:$PATH" >> ~/.bashrc
     #echo export PATH="$HOME/.cargo/bin:$PATH" >> ~/.bashrc
     #echo export PATH="/usr/local/veilidchat:$PATH" >> ~/.bashrc
   SHELL
   
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+  config.vm.provision "shell", privileged: false, inline: <<-'SHELL'
     echo barby
-    sudo -u vagrant sed -i 's/debian\|/Fedora\|/' /home/vagrant/veilid/dev-setup/setup_linux.sh
-    echo "N" | ./veilid/dev-setup/setup_linux.sh || true
-    sudo ./veilid/dev-setup/install_linux_prerequisites.sh
-    sudo dnf install cargo -y
+    echo ##### - extracted from veilid/dev-setup/install_linux_prerequisites.sh
+    sudo dnf update -y
+    sudo dnf install -y java-17-openjdk-headless iproute curl cmake openssl-devel openssl git file pkg-config dbus-devel dbus-glib gobject-introspection-devel cairo-devel unzip llvm wabt python3-pip gcc-c++
+    sudo dnf groupinstall -y 'Development Tools'
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y -c clippy --profile default
+    ##### We have likely done this above
+    #source "$HOME/.cargo/env"
+    #####
+    mkdir -p $HOME/Android/Sdk
+    #curl -o $HOME/Android/cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9123335_latest.zip
+    sudo dnf install -y expect
+    cd $HOME/Android
+    unzip /vagrant/commandlinetools-linux-9123335_latest.zip
+    expect -i <<EOF
+set timeout -1   ;
+spawn $HOME/Android/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/Android/Sdk  build-tools\;34.0.0 ndk\;26.3.11579264 cmake\;3.22.1 platform-tools platforms\;android-34 cmdline-tools\;latest emulator 
+    
+expect {                                     
+  "Accept?" { exp_send "y\r" ; exp_continue }
+eof
+}
+
+EOF
+  #SHELL
+
+  
+  #config.vm.provision "shell", privileged: false, inline: <<-'SHELL'
+    cd $HOME
+    #rm -rf $HOME/Android/cmdline-tools $HOME/Android/cmdline-tools.zip
+    source "\$HOME/.cargo/env"
+    export PATH=\$PATH:\$HOME/Android/Sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin:\$HOME/Android/Sdk/platform-tools:\$HOME/Android/Sdk/cmdline-tools/latest/bin
+    export ANDROID_HOME=\$HOME/Android/Sdk
+
+
+
+
+
+    ##### Not neccessary as we are not running the script
+    #sudo -u vagrant sed -i 's/debian\|/Fedora\|/' /home/vagrant/veilid/dev-setup/setup_linux.sh
+    #sed -i "$(grep -n  sdkmanager /home/vagrant/veilid/dev-setup/install_linux_prerequisites.sh | cut -f1 -d:)s/^\t/\techo 'Y' |/" /home/vagrant/veilid/dev-setup/install_linux_prerequisites.sh
+    # Answer "Y" to quesiton "Do you want to install the Android SDK optional Y/N"
+    # Accept License with "y"
+    # Anser "Y" to accept the licensing.
+    #yes $'Y\nY' | ./veilid/dev-setup/install_linux_prerequisites.sh
+    
+    ###Delete as not nessecary###
+    #sudo dnf install cargo -y
     #sudo dnf install rustc -y
     #sudo dnf install rust -y
     #sudo apt-get install python3-pip -y
     #sudo -u vagrant curl https://sh.rustup.rs -sSf | sh -s -- -y
   SHELL
 
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
-    echo basby
-    export PATH="$HOME/flutter/bin:$PATH"
-    sudo -u vagrant sed -i 's/debian\|/Fedora\|/' /home/vagrant/veilidchat/dev-setup/setup_linux.sh
-    echo "Y" | ./veilidchat/dev-setup/setup_linux.sh || true
-    ./veilidchat/install_protoc_linux.sh
-    cd ~/veilidchat/
+  config.vm.provision "shell", privileged: false, inline: <<-'SHELL'
+    echo basby - Extracted from veilid/dev-setup-setup_linux.sh
+    rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android wasm32-unknown-unknown
+    cargo install wasm-bindgen-cli wasm-pack cargo-edit
+    pip3 install --upgrade bumpversion
+    ./veilid/scripts/earthly/install_capnproto.sh
+    # ALREADY IN PATH
+    # export PATH="$HOME/flutter/bin:$PATH"
+    #
+    # Answer "N" to the question "Did you install Android SDK? Y/N"
+    # Use Yes to insert N followed by a newline character "\n"
+    # Answer "Y" to the question "Will you be modifying the capnproto schema? Y/N"
+    # Use Yes to insert Y following the previous newline character
+    #./veilid/dev-setup/setup_linux.sh
+
+    #sudo -u vagrant sed -i 's/debian\|/Fedora\|/' /home/vagrant/veilid/veilidchat/dev-setup/setup_linux.sh
+    #sudo -u vagrant sed -i "$(grep -n  dev-setup /home/vagrant/veilidchat/dev-setup/setup_linux.sh | cut -f1 -d:)s/^/#/" /home/vagrant/veilidchat/dev-setup/setup_linux.sh
+    #sudo -u vagrant sed -i "$(grep -n  install_protoc /home/vagrant/veilidchat/dev-setup/setup_linux.sh | cut -f1 -d:)s/^/#/" /home/vagrant/veilidchat/dev-setup/setup_linux.sh
+    #sudo -u vagrant sed -i "$(grep -n  veilid-flutter /home/vagrant/veilidchat/dev-setup/setup_linux.sh | cut -f1 -d:)s/^/#/" /home/vagrant/veilidchat/dev-setup/setup_linux.sh
+    
+    #sudo -u vagrant sed -i 's/\$HOME/Android/cmdline-tools/bin/sdkmanager\|echo \"Y\" \| \$HOME/Android/cmdline-tools/bin/sdkmanager|/
+
+    ### should be installed by calling veilidchat/dev-set/setup_linx.sh ###
+    #./veilidchat/dev-setup/install_protoc_linux.sh
+    #
+    # Below, echo "N" to question Did you install Android SDK? Y/N
+    # Skipping Android SDK config check...
+    #
+    #Deprecated - not required
+    #echo "N" | ./veilidchat/dev-setup/setup_linux.sh || true
+
+    
+    #cd ~/veilid/veilidchat/
+    #./dev-setup/setup_linux.sh
+  SHELL
+
+  config.vm.provision "shell", privileged: false, path: "install_android.sh"
+  
+  config.vm.provision "shell", privileged: false, inline: <<-'SHELL'
+    echo foobyfoo - veilidchat/dev-setup/setup_linux.sh
+    ./veilid/veilidchat/dev-setup/install_protoc_linux.sh
+    ./veilid/veilid-flutter/setup_flutter.sh
     dart pub global activate protoc_plugin
     flutter precache
     flutter --disable-analytics
@@ -186,20 +273,26 @@ Vagrant.configure("2") do |config|
 
   SHELL
 
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
-    echo foobyfoo
+  config.vm.provision "shell", privileged: false, inline: <<-'SHELL'
+    echo foobybar
     echo Login to host with "vagrant ssh"
     #echo Issue the following command if flutter errors:
     #echo export PATH="$HOME/flutter/bin:$PATH"
-    cd veilidchat
-    ./build
+    cd ~/veilid
+    ./build_docs.sh
+    cd ~/veilid/veilidchat/
+    #./build.sh
     flutter build linux
+
+    flutter build apk
     echo cd veilidchat
+    echo flutter build apk
+    echo      - or -
+    echo flutter build linux
     echo ./reset_run.sh
-    echo  -or-
+    echo      - or -
     echo cd veilidchat
     echo "nohup firefox & ./reset_run.sh | grep http && fg"
-    flutter build apk
     #cd ~/veilid/target/release 
     #nohup ./veilid-server &> /dev/null 2>&1 & disown
     
